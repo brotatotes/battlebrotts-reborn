@@ -37,6 +37,7 @@ function sync(){
   el('battle-feedback').textContent=feedback;
   el('pause').disabled=state.phase!=='battle';el('pause').textContent=paused?'Resume':'Pause';el('auto').disabled=state.phase!=='battle'||paused;
   const phase=paused?'paused':state.phase;
+  document.body.classList.toggle('battle-active',phase==='battle');
   if(phase===lastPhase)return;lastPhase=phase;
   const overlay=el('overlay');overlay.replaceChildren();if(phase==='battle')return;
   const panel=document.createElement('div');panel.className='panel';
@@ -56,7 +57,10 @@ function sync(){
   if(phase==='loss'){h.textContent='Down, not forgotten.';p.textContent=state.retries?'Keep your gear. Repair Pip and try this encounter again.':'No repairs left. A new build is a new chance.';if(state.retries)actions.append(button('Repair and retry',()=>{retryBattle(state);canvas.focus();},true));actions.append(button('New run',newRun));}
   if(phase==='win'){h.textContent='Small Brott. Big day.';p.textContent='Five encounters. One very proud machine. Try a different build?';actions.append(button('Start a new run',newRun,true));}
   panel.append(h,p,actions);overlay.append(panel);
-  if(phase!=='ready')requestAnimationFrame(()=>actions.querySelector('button')?.focus());
+  if(phase!=='ready')requestAnimationFrame(()=>{
+    actions.querySelector('button')?.focus({preventScroll:true});
+    panel.scrollIntoView({block:'center',behavior:'instant'});
+  });
 }
 function togglePause(){if(state.phase==='battle'){paused=!paused;audio.setSuspended(paused);held.clear();command(state,'keys',{x:0,y:0});}}
 el('sound').addEventListener('click',async()=>{
