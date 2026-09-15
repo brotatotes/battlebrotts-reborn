@@ -21,6 +21,12 @@ export function render(canvas,s,alpha=1,portrait=false) {
     const x=b.prevX+(b.x-b.prevX)*alpha,y=b.prevY+(b.y-b.prevY)*alpha,r=b.radius;
     const selected=b.id===s.targetId;
     if(selected){ctx.strokeStyle=coral;ctx.lineWidth=3;ctx.setLineDash([12,6]);ctx.beginPath();ctx.arc(x,y,r+19,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
+    if(b.kind==='chief' && (b.windup>0 || b.burstLeft>0)) {
+      ctx.save();ctx.translate(x,y);ctx.rotate(b.angle);
+      ctx.fillStyle='#bc493119';ctx.fillRect(0,-b.radius,Math.max(WIDTH,HEIGHT),b.radius*2);
+      ctx.strokeStyle='#a8412d';ctx.lineWidth=3;ctx.setLineDash([12,8]);
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.max(WIDTH,HEIGHT),0);ctx.stroke();ctx.restore();
+    }
     // A visible wind-up follows the actual simulation aim, not a separate facing rule.
     if(b.cooldown<0.6){ctx.strokeStyle=b.team?'#c7655366':'#338b8466';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(b.angle)*Math.min(160,b.range),y+Math.sin(b.angle)*Math.min(160,b.range));ctx.stroke();}
     ctx.save();ctx.translate(x,y);
@@ -41,7 +47,7 @@ export function render(canvas,s,alpha=1,portrait=false) {
     if(portrait)ctx.rotate(-Math.PI/2);
     const barWidth=Math.max(r*2+12,44/cssScale),fontSize=Math.max(12,12/cssScale);
     rounded(ctx,-barWidth/2,r+16,barWidth,7,3,'#bdc8b7',null);rounded(ctx,-barWidth/2,r+16,barWidth*b.hp/b.maxHp,7,3,b.team?coral:teal,null);
-    ctx.fillStyle=ink;ctx.font=`600 ${fontSize}px system-ui`;ctx.textAlign='center';ctx.fillText(b.name,0,r+27+fontSize);ctx.restore();
+    ctx.fillStyle=ink;ctx.font=`600 ${fontSize}px system-ui`;ctx.textAlign='center';ctx.fillText(b.kind==='chief' && b.windup>0?'MOVE!':b.name,0,r+27+fontSize);ctx.restore();
   }
   for(const b of s.bullets){ctx.strokeStyle=b.team?coral:'#2c8b83';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b.x-b.vx*0.025,b.y-b.vy*0.025);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.fillStyle=cream;ctx.beginPath();ctx.arc(b.x,b.y,2,0,Math.PI*2);ctx.fill();}
   for(const e of s.effects){ctx.strokeStyle=e.death?'#d4a244':'#fff5d5';ctx.lineWidth=4;ctx.beginPath();ctx.arc(e.x,e.y,(0.3-e.life)*80+5,0,Math.PI*2);ctx.stroke();}

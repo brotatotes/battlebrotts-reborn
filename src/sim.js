@@ -21,18 +21,18 @@ const templates = {
   riveter: {name: 'Rivet', maxHp: 105, speed: 65, range: 240, damage: 5, interval: 1.9, radius: 25, turnSpeed: 1.4, shotSpeed: 230},
   skitter: {name: 'Skitter', maxHp: 48, speed: 115, range: 160, damage: 4, interval: 1.8, radius: 20, turnSpeed: 2, shotSpeed: 250},
   surveyor: {name: 'Surveyor', maxHp: 85, speed: 55, range: 390, damage: 8, interval: 2.4, radius: 24, turnSpeed: 1.1, shotSpeed: 310},
-  chief: {name: 'The Chief', maxHp: 280, speed: 50, range: 340, damage: 10, interval: 1.4, radius: 39, turnSpeed: 1.2, shotSpeed: 250},
+  chief: {name: 'The Chief', maxHp: 280, speed: 50, range: 425, damage: 14, interval: 1.4, radius: 39, turnSpeed: 1.2, shotSpeed: 250},
 };
 export const ENCOUNTERS = [
   {name: 'First Shift', subtitle: 'An old riveter. A fresh start.', enemies: ['riveter']},
   {name: 'The Pair', subtitle: 'Pick your target. Keep your wheels turning.', enemies: ['riveter', 'skitter']},
   {name: 'Small Trouble', subtitle: 'Small machines. Big opinions.', enemies: ['skitter', 'skitter', 'skitter']},
   {name: 'Long Reach', subtitle: 'Watch the barrel, not just the bot.', enemies: ['surveyor', 'riveter']},
-  {name: 'The Chief', subtitle: 'One last meeting with management.', enemies: ['chief']},
+  {name: 'The Chief', subtitle: 'The Chief locks a line, then fires three bolts. Move sideways to dodge.', enemies: ['chief']},
 ];
 function entity(kind, id, x, y, team) {
   const base = templates[kind];
-  return {...base, kind, id, team, x, y, prevX: x, prevY: y, hp: base.maxHp, angle: team ? Math.PI : 0, bodyAngle: team ? Math.PI : 0, cooldown: 1, flash: 0, shots: 0, hits: 0, gear: 'rivet', regen: 0};
+  return {...base, kind, id, team, x, y, prevX: x, prevY: y, hp: base.maxHp, angle: team ? Math.PI : 0, bodyAngle: team ? Math.PI : 0, cooldown: 1, flash: 0, shots: 0, hits: 0, gear: 'rivet', regen: 0, windup: 0, burstLeft: 0, burstTimer: 0};
 }
 export const muzzleLength = bot => bot.radius + (bot.gear === 'barrel' ? 25 : bot.gear === 'coil' ? 8 : 12);
 export function createRun(seed = 1) {
@@ -85,6 +85,11 @@ export function sweepHit(ax, ay, bx, by, cx, cy, dx, dy, radius) {
   const t = (-b - Math.sqrt(d))/(2*a);
   return t >= 0 && t <= 1 ? t : null;
 }
+function fire(s, bot) {
+  const ux = Math.cos(bot.angle), uy = Math.sin(bot.angle);
+  s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*muzzleLength(bot), y: bot.y+uy*muzzleLength(bot), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5});
+  bot.shots++; s.events.push({type: 'shot', team: bot.team});
+}
 function getTarget(s, bot) {
   const foes = bot.team === 0 ? s.enemies.filter(e => e.hp > 0) : (s.player.hp > 0 ? [s.player] : []);
   return foes.find(e => e.id === s.targetId && bot.team === 0) || foes.sort((a,b) => distance(bot,a) - distance(bot,b))[0];
@@ -112,17 +117,33 @@ export function step(s, dt = STEP) {
       else if (d < bot.range * 0.58) { vx = -dx; vy = -dy; }
       else { vx = -dy * 0.28; vy = dx * 0.28; }
     }
+    if (bot.kind === 'chief' && (bot.windup > 0 || bot.burstLeft > 0)) { vx = 0; vy = 0; }
     const magnitude = Math.max(1, Math.hypot(vx,vy));
     if (vx || vy) bot.bodyAngle += clamp(angleDelta(bot.bodyAngle, Math.atan2(vy,vx)), -3*dt, 3*dt);
     proposals.set(bot.id, {x: bot.x + vx/magnitude*bot.speed*dt, y: bot.y + vy/magnitude*bot.speed*dt});
     if (target) {
       const aim = Math.atan2(target.y-bot.y, target.x-bot.x);
-      bot.angle += clamp(angleDelta(bot.angle, aim), -bot.turnSpeed*dt, bot.turnSpeed*dt);
-      bot.cooldown = Math.max(0, bot.cooldown-dt);
-      if (distance(bot,target) <= bot.range && Math.abs(angleDelta(bot.angle,aim)) < 0.09 && bot.cooldown <= 0) {
-        const ux = Math.cos(bot.angle), uy = Math.sin(bot.angle);
-        s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*muzzleLength(bot), y: bot.y+uy*muzzleLength(bot), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5});
-        bot.cooldown = bot.interval; bot.shots++; s.events.push({type: 'shot', team: bot.team});
+      // Chief commits to the visible line for the entire warning and burst.
+      // Regular weapons retain their independent tracking/cadence.
+      if (bot.kind === 'chief' && (bot.windup > 0 || bot.burstLeft > 0)) {
+        if (bot.windup > 0) {
+          bot.windup = Math.max(0, bot.windup-dt);
+          if (bot.windup === 0) { bot.burstLeft = 3; bot.burstTimer = 0; }
+        }
+        if (bot.burstLeft > 0) {
+          bot.burstTimer -= dt;
+          if (bot.burstTimer <= 0) {
+            fire(s,bot); bot.burstLeft--; bot.burstTimer = 0.24;
+            if (bot.burstLeft === 0) bot.cooldown = 4.2;
+          }
+        }
+      } else {
+        bot.angle += clamp(angleDelta(bot.angle, aim), -bot.turnSpeed*dt, bot.turnSpeed*dt);
+        bot.cooldown = Math.max(0, bot.cooldown-dt);
+        if (distance(bot,target) <= bot.range && Math.abs(angleDelta(bot.angle,aim)) < 0.09 && bot.cooldown <= 0) {
+          if (bot.kind === 'chief') { bot.windup = 1.05; s.events.push({type:'warning',team:bot.team}); }
+          else { fire(s,bot); bot.cooldown = bot.interval; }
+        }
       }
     }
   }

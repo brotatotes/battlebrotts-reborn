@@ -54,7 +54,7 @@ canvas.addEventListener('keydown',event=>{
   const k=event.key.toLowerCase();if(k==='escape'){event.preventDefault();togglePause();return;}
   if(paused)return;
   if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){event.preventDefault();held.add(k);keys();}
-  if(k==='tab'){event.preventDefault();const living=state.enemies.filter(e=>e.hp>0),index=living.findIndex(e=>e.id===state.targetId);if(living.length)command(state,'target',living[(index+1)%living.length].id);}
+  if(k==='q'){event.preventDefault();const living=state.enemies.filter(e=>e.hp>0),index=living.findIndex(e=>e.id===state.targetId);if(living.length)command(state,'target',living[(index+1)%living.length].id);}
 });
 window.addEventListener('keyup',event=>{held.delete(event.key.toLowerCase());keys();});
 canvas.addEventListener('blur',()=>{held.clear();keys();});

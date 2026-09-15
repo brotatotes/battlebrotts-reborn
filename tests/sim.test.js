@@ -45,3 +45,29 @@ test('physical muzzle and projectile share forward axis for every weapon and qua
     assert.ok(Math.abs(bullet.y-origin.y-Math.sin(angle)*traveled)<1e-7);
   }
 });
+
+test('Chief locks aim during a visible one-second windup and three-shot burst',()=>{
+  const s=createRun();s.encounter=4;startBattle(s);
+  while(!s.enemies[0].windup&&s.time<10)step(s);
+  const chief=s.enemies[0],angle=chief.angle,shots=chief.shots;
+  assert.ok(chief.windup>=1);command(s,'move',{x:185,y:100});
+  for(let i=0;i<60;i++){step(s);assert.equal(chief.angle,angle);assert.equal(chief.shots,shots);}
+  while(chief.windup||chief.burstLeft){step(s);assert.equal(chief.angle,angle);}
+  assert.equal(chief.shots-shots,3);assert.equal(chief.cooldown,4.2);
+});
+test('selected target death during ongoing pair fight preserves route and resumes targeting',()=>{
+  const s=createRun();s.encounter=1;startBattle(s);command(s,'move',{x:880,y:530});command(s,'target','enemy-1');s.enemies[1].hp=0;step(s);
+  assert.equal(s.phase,'battle');assert.equal(s.targetId,null);assert.ok(s.waypoint);const from=s.player.x;
+  for(let i=0;i<180;i++)step(s);assert.ok(s.player.x>from+200);assert.ok(s.player.shots>0);assert.ok(s.waypoint);
+});
+test('both actual reward build directions complete five encounters without input',()=>{
+  for(const role of ['coil','barrel'])for(let seed=1;seed<=6;seed++){
+    const s=createRun(seed);startBattle(s);
+    for(let i=0;i<5;i++){
+      while(s.phase==='battle'&&s.time<120)step(s);
+      if(i===4){assert.equal(s.phase,'win',`${role} seed ${seed}`);break;}
+      assert.equal(s.phase,'reward');const id=[role,'shell','mesh','return','spring','lens','bearings'].find(id=>s.choiceIds.includes(id));assert.ok(id);chooseUpgrade(s,id);startBattle(s);
+    }
+    assert.ok(s.upgrades.includes(role));assert.equal(s.upgrades.length,4);
+  }
+});
