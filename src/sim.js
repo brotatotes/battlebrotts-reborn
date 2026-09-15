@@ -42,7 +42,7 @@ export function createRun(seed = 1) {
 export function startBattle(s) {
   if (!['ready', 'between', 'retry'].includes(s.phase)) return false;
   s.phase = 'battle'; s.time = 0; s.ticks = 0; s.bullets = []; s.effects = []; s.waypoint = null; s.targetId = null; s.keys = {x: 0, y: 0};
-  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0});
+  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0, autoTargetId: null});
   s.enemies = ENCOUNTERS[s.encounter].enemies.map((kind, i, all) => entity(kind, `enemy-${i}`, 740 + (i % 2) * 65, 300 + (i - (all.length - 1) / 2) * 120, 1));
   s.lastCommand = 'Autopilot engaged'; s.events = [{type: 'start'}];
   return true;
@@ -92,7 +92,10 @@ function fire(s, bot) {
 }
 function getTarget(s, bot) {
   const foes = bot.team === 0 ? s.enemies.filter(e => e.hp > 0) : (s.player.hp > 0 ? [s.player] : []);
-  return foes.find(e => e.id === s.targetId && bot.team === 0) || foes.sort((a,b) => distance(bot,a) - distance(bot,b))[0];
+  const explicit=bot.team===0&&foes.find(e=>e.id===s.targetId);
+  const target=explicit||foes.find(e=>e.id===bot.autoTargetId)||foes.sort((a,b)=>distance(bot,a)-distance(bot,b))[0];
+  bot.autoTargetId=target?.id??null;
+  return target;
 }
 export function step(s, dt = STEP) {
   if (s.phase !== 'battle') return;
@@ -147,14 +150,31 @@ export function step(s, dt = STEP) {
       }
     }
   }
-  // Symmetric correction is calculated in proposals, then each position is committed once.
-  for (let i=0; i<bots.length; i++) for (let j=i+1; j<bots.length; j++) {
-    const a=bots[i], b=bots[j], pa=proposals.get(a.id), pb=proposals.get(b.id);
-    const dx=pb.x-pa.x, dy=pb.y-pa.y, d=Math.hypot(dx,dy), overlap=a.radius+b.radius+3-d;
-    if (overlap>0) { const ux=d>0.001?dx/d:1, uy=d>0.001?dy/d:0; pa.x-=ux*overlap/2; pa.y-=uy*overlap/2; pb.x+=ux*overlap/2; pb.y+=uy*overlap/2; }
+  // Project contacts and walls together. A single pair pass followed by a wall
+  // clamp can push a corner body straight back into its neighbour. All passes
+  // operate only on proposals, so each actual position still commits once.
+  const constrain = (bot,p) => {
+    p.x=clamp(p.x,bot.radius+12,WIDTH-bot.radius-12);
+    p.y=clamp(p.y,bot.radius+12,HEIGHT-bot.radius-12);
+  };
+  for(const bot of bots)constrain(bot,proposals.get(bot.id));
+  for(let pass=0;pass<64;pass++) {
+    let maxOverlap=0;
+    for(let i=0;i<bots.length;i++)for(let j=i+1;j<bots.length;j++) {
+      const a=bots[i],b=bots[j],pa=proposals.get(a.id),pb=proposals.get(b.id);
+      const dx=pb.x-pa.x,dy=pb.y-pa.y,d=Math.hypot(dx,dy),overlap=a.radius+b.radius+3-d;
+      maxOverlap=Math.max(maxOverlap,overlap);
+      if(overlap>0.001) {
+        const ux=d>0.001?dx/d:1,uy=d>0.001?dy/d:0;
+        pa.x-=ux*overlap/2;pa.y-=uy*overlap/2;
+        pb.x+=ux*overlap/2;pb.y+=uy*overlap/2;
+        constrain(a,pa);constrain(b,pb);
+      }
+    }
+    if(maxOverlap<0.001)break;
   }
-  for (const bot of bots) {
-    const p=proposals.get(bot.id); bot.x=clamp(p.x,bot.radius+12,WIDTH-bot.radius-12); bot.y=clamp(p.y,bot.radius+12,HEIGHT-bot.radius-12);
+  for(const bot of bots) {
+    const p=proposals.get(bot.id);bot.x=p.x;bot.y=p.y;
   }
   const surviving=[];
   for (const bullet of s.bullets) {
