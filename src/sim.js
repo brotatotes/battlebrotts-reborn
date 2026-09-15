@@ -14,10 +14,10 @@ export const UPGRADES = [
   {id: 'bearings', name: 'Rolling Bearings', detail: '+20% movement speed.', apply: p => { p.speed *= 1.2; }},
   {id: 'lens', name: 'Steady Lens', detail: 'Aim turns 40% faster. +10% damage.', apply: p => { p.turnSpeed *= 1.4; p.damage *= 1.1; }},
   {id: 'return', name: 'Return Spring', detail: '+20% damage.', apply: p => { p.damage *= 1.2; }},
-  {id: 'mesh', name: 'Repair Mesh', detail: '+25 maximum hull. Recover fully between fights.', apply: p => { p.maxHp += 25; p.hp += 25; }},
+  {id: 'mesh', name: 'Repair Mesh', detail: 'Restore 1 hull per second during combat, up to maximum hull.', apply: p => { p.regen = 1; }},
 ];
 const templates = {
-  pip: {name: 'Pip', maxHp: 140, speed: 100, range: 285, damage: 9, interval: 1.3, radius: 24, turnSpeed: 2.5, shotSpeed: 330},
+  pip: {name: 'Pip', maxHp: 140, speed: 100, range: 285, damage: 9, interval: 2.3, radius: 24, turnSpeed: 2.5, shotSpeed: 330},
   riveter: {name: 'Rivet', maxHp: 105, speed: 65, range: 240, damage: 5, interval: 1.9, radius: 25, turnSpeed: 1.4, shotSpeed: 230},
   skitter: {name: 'Skitter', maxHp: 48, speed: 115, range: 160, damage: 4, interval: 1.8, radius: 20, turnSpeed: 2, shotSpeed: 250},
   surveyor: {name: 'Surveyor', maxHp: 85, speed: 55, range: 390, damage: 8, interval: 2.4, radius: 24, turnSpeed: 1.1, shotSpeed: 310},
@@ -32,8 +32,9 @@ export const ENCOUNTERS = [
 ];
 function entity(kind, id, x, y, team) {
   const base = templates[kind];
-  return {...base, kind, id, team, x, y, prevX: x, prevY: y, hp: base.maxHp, angle: team ? Math.PI : 0, cooldown: 1, flash: 0, shots: 0, hits: 0, gear: 'rivet'};
+  return {...base, kind, id, team, x, y, prevX: x, prevY: y, hp: base.maxHp, angle: team ? Math.PI : 0, bodyAngle: team ? Math.PI : 0, cooldown: 1, flash: 0, shots: 0, hits: 0, gear: 'rivet', regen: 0};
 }
+export const muzzleLength = bot => bot.radius + (bot.gear === 'barrel' ? 25 : bot.gear === 'coil' ? 8 : 12);
 export function createRun(seed = 1) {
   const s = {seed, random: rng(seed), phase: 'ready', encounter: 0, retries: 2, upgrades: [], time: 0, ticks: 0, player: entity('pip', 'pip', 200, 300, 0), enemies: [], bullets: [], effects: [], events: [], waypoint: null, targetId: null, keys: {x: 0, y: 0}, choiceIds: [], nextBullet: 0, lastCommand: 'Autopilot ready'};
   return s;
@@ -41,7 +42,7 @@ export function createRun(seed = 1) {
 export function startBattle(s) {
   if (!['ready', 'between', 'retry'].includes(s.phase)) return false;
   s.phase = 'battle'; s.time = 0; s.ticks = 0; s.bullets = []; s.effects = []; s.waypoint = null; s.targetId = null; s.keys = {x: 0, y: 0};
-  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0});
+  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0});
   s.enemies = ENCOUNTERS[s.encounter].enemies.map((kind, i, all) => entity(kind, `enemy-${i}`, 740 + (i % 2) * 65, 300 + (i - (all.length - 1) / 2) * 120, 1));
   s.lastCommand = 'Autopilot engaged'; s.events = [{type: 'start'}];
   return true;
@@ -95,6 +96,7 @@ export function step(s, dt = STEP) {
   const proposals = new Map();
   for (const bot of bots) {
     bot.prevX = bot.x; bot.prevY = bot.y; bot.flash = Math.max(0, bot.flash-dt);
+    bot.hp = Math.min(bot.maxHp, bot.hp + bot.regen * dt);
     const target = getTarget(s, bot);
     let vx = 0, vy = 0;
     const keyboard = bot.team === 0 && (s.keys.x || s.keys.y);
@@ -111,6 +113,7 @@ export function step(s, dt = STEP) {
       else { vx = -dy * 0.28; vy = dx * 0.28; }
     }
     const magnitude = Math.max(1, Math.hypot(vx,vy));
+    if (vx || vy) bot.bodyAngle += clamp(angleDelta(bot.bodyAngle, Math.atan2(vy,vx)), -3*dt, 3*dt);
     proposals.set(bot.id, {x: bot.x + vx/magnitude*bot.speed*dt, y: bot.y + vy/magnitude*bot.speed*dt});
     if (target) {
       const aim = Math.atan2(target.y-bot.y, target.x-bot.x);
@@ -118,7 +121,7 @@ export function step(s, dt = STEP) {
       bot.cooldown = Math.max(0, bot.cooldown-dt);
       if (distance(bot,target) <= bot.range && Math.abs(angleDelta(bot.angle,aim)) < 0.09 && bot.cooldown <= 0) {
         const ux = Math.cos(bot.angle), uy = Math.sin(bot.angle);
-        s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*(bot.radius+12), y: bot.y+uy*(bot.radius+12), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5});
+        s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*muzzleLength(bot), y: bot.y+uy*muzzleLength(bot), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5});
         bot.cooldown = bot.interval; bot.shots++; s.events.push({type: 'shot', team: bot.team});
       }
     }
@@ -156,7 +159,9 @@ export function step(s, dt = STEP) {
     if(s.phase==='reward') {
       const eligible=UPGRADES.filter(u=>!s.upgrades.includes(u.id) && !(s.upgrades.includes('coil') && u.id==='barrel') && !(s.upgrades.includes('barrel') && u.id==='coil'));
       for(let i=eligible.length-1;i>0;i--) { const j=Math.floor(s.random()*(i+1)); [eligible[i],eligible[j]]=[eligible[j],eligible[i]]; }
-      s.choiceIds=eligible.slice(0,3).map(u=>u.id);
+      // The first decision always exposes both build directions. Later rewards
+      // stay varied without offering a hidden, unequipped replacement.
+      s.choiceIds=s.encounter===0 ? ['coil','barrel',eligible.find(u=>!['coil','barrel'].includes(u.id)).id] : eligible.slice(0,3).map(u=>u.id);
     }
   }
 }

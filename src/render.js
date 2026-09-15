@@ -1,4 +1,4 @@
-import {WIDTH, HEIGHT} from './sim.js';
+import {WIDTH, HEIGHT, muzzleLength} from './sim.js';
 const ink='#213d39', cream='#faf0d7', teal='#4bada4', coral='#db7763';
 function rounded(ctx,x,y,w,h,r,fill,stroke=ink) {ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=3;ctx.stroke();}}
 export function render(canvas,s,alpha=1) {
@@ -23,6 +23,7 @@ export function render(canvas,s,alpha=1) {
     if(b.cooldown<0.6){ctx.strokeStyle=b.team?'#c7655366':'#338b8466';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+Math.cos(b.angle)*Math.min(160,b.range),y+Math.sin(b.angle)*Math.min(160,b.range));ctx.stroke();}
     ctx.save();ctx.translate(x,y);
     ctx.fillStyle='#294a3925';ctx.beginPath();ctx.ellipse(0,14,r+13,r*0.65,0,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.rotate(b.bodyAngle+Math.PI/2);
     rounded(ctx,-r-7,-r+5,13,r*2-4,6,'#45605a');rounded(ctx,r-6,-r+5,13,r*2-4,6,'#45605a');
     const body=b.flash>0?'#ffffff':b.team?'#e9b5a0':cream;
     rounded(ctx,-r,-r,r*2,r*2, b.kind==='skitter'?10:18,body);
@@ -31,9 +32,10 @@ export function render(canvas,s,alpha=1) {
     ctx.fillRect(-r*0.42,-r*0.38,5,7);ctx.fillRect(r*0.27,-r*0.38,5,7);
     ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-r);ctx.lineTo(5,-r-12);ctx.stroke();
     ctx.fillStyle=b.team?coral:teal;ctx.beginPath();ctx.arc(5,-r-13,4,0,Math.PI*2);ctx.fill();
-    ctx.save();ctx.rotate(b.angle);const length=b.gear==='barrel'?43:b.gear==='coil'?23:30;
-    rounded(ctx,4,4,length,11,4,b.team?coral:teal);rounded(ctx,length-3,1,9,17,3,'#c9d3bf');ctx.restore();
     if(b.kind==='chief'){rounded(ctx,-15,-r-8,30,8,2,'#d5b348');}
+    ctx.restore();
+    ctx.save();ctx.rotate(b.angle);const length=muzzleLength(b);
+    rounded(ctx,0,-6,length-3,12,4,b.team?coral:teal);rounded(ctx,length-9,-9,9,18,3,'#c9d3bf');ctx.restore();
     rounded(ctx,-r-6,r+16,r*2+12,7,3,'#bdc8b7',null);rounded(ctx,-r-6,r+16,(r*2+12)*b.hp/b.maxHp,7,3,b.team?coral:teal,null);
     ctx.fillStyle=ink;ctx.font='600 12px system-ui';ctx.textAlign='center';ctx.fillText(b.name,0,r+39);ctx.restore();
   }

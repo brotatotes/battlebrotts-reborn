@@ -13,7 +13,8 @@ function start(){startBattle(state);paused=false;lastPhase='';canvas.focus();}
 function newRun(){state=createRun(++runNumber);paused=false;held.clear();lastPhase='';}
 function sync(){
   el('stats').innerHTML=`<dt>Hull</dt><dd>${Math.ceil(state.player.hp)} / ${state.player.maxHp}</dd><dt>Damage</dt><dd>${state.player.damage.toFixed(1)}</dd><dt>Range</dt><dd>${Math.round(state.player.range)}</dd>`;
-  el('gear').replaceChildren(...['Standard riveter',...state.upgrades.map(id=>UPGRADES.find(u=>u.id===id).name)].map(name=>{const li=document.createElement('li');li.textContent=name;return li;}));
+  const weapon=state.player.gear==='coil'?'Close Coil riveter':state.player.gear==='barrel'?'Long Barrel bolt thrower':'Standard riveter';
+  el('gear').replaceChildren(...[weapon,...state.upgrades.filter(id=>!['coil','barrel'].includes(id)).map(id=>UPGRADES.find(u=>u.id===id).name)].map(name=>{const li=document.createElement('li');li.textContent=name;return li;}));
   el('retries').textContent=`${state.retries} repairs available`;
   el('progress').textContent=`ENCOUNTER ${state.encounter+1} / ${ENCOUNTERS.length}`;
   el('title').textContent=state.phase==='ready'?'Meet Pip. Make a little trouble.':ENCOUNTERS[state.encounter].name;
@@ -34,6 +35,7 @@ function sync(){
   if(phase==='loss'){h.textContent='Down, not forgotten.';p.textContent=state.retries?'Keep your gear. Repair Pip and try this encounter again.':'No repairs left. A new build is a new chance.';if(state.retries)actions.append(button('Repair and retry',()=>{retryBattle(state);canvas.focus();},true));actions.append(button('New run',newRun));}
   if(phase==='win'){h.textContent='Small Brott. Big day.';p.textContent='Five encounters. One very proud machine. Try a different build?';actions.append(button('Start a new run',newRun,true));}
   panel.append(h,p,actions);overlay.append(panel);
+  if(phase!=='ready')requestAnimationFrame(()=>actions.querySelector('button')?.focus());
 }
 function togglePause(){if(state.phase==='battle'){paused=!paused;held.clear();command(state,'keys',{x:0,y:0});}}
 el('pause').addEventListener('click',togglePause);el('auto').addEventListener('click',()=>command(state,'auto'));
