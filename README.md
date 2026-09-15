@@ -4,7 +4,7 @@ An original small real-time robot auto-battler. Watch Pip fight, choose equipmen
 
 ## Development status
 
-This is an early original core, not the finished release. The approved finite scope is four regular encounters and one boss, one starter and two equipment directions. Tuning, sound, accessibility review, complete browser runs, independent critical review, presentation and recorded demo remain in progress. Passing unit tests is not a claim of human playtesting or finished-game quality.
+This is a development build, not the finished release. The approved finite scope is four regular encounters and one boss, one starter and two equipment directions. Both build directions have completed real browser campaigns. Independent critical review, final tuning, accessibility and release verification remain in progress. Optional original audio, numerical reward previews and a five-slide presentation are implemented with unit checks but await browser verification. The captioned demo is not yet recorded. Passing tests is not a claim of human playtesting or finished-game quality.
 
 ## Run locally
 
@@ -25,6 +25,11 @@ Open http://127.0.0.1:8000. The game itself is a standalone static site with no 
 - Click an enemy to target it. A target selection does not cancel a movement command.
 - Focus the arena to use WASD/arrows. Escape pauses. Return to auto restores autonomous control.
 - Choose one reward after each victory. Two repairs retry the current encounter with your build intact.
+- Sound starts off. Use the Sound button to opt into sparse original mechanical tones. Mute remains in effect across new runs. No essential information depends on sound.
+
+## Presentation
+
+Open `presentation.html` for the five-slide development presentation. Use the visible Previous/Next buttons or arrow keys. Home/End jump to the first/last slide. Browser printing includes all five slides. Screenshots are labeled development captures and final delivery links remain pending.
 
 ## Structure
 
@@ -32,4 +37,4 @@ Open http://127.0.0.1:8000. The game itself is a standalone static site with no 
 
 ## Provenance
 
-All game code, robot drawings, visual layout and writing in this repository are newly created for this project. No earlier BattleBrotts source, assets or studio infrastructure is included. System fonts only. No third-party runtime assets or packages.
+All game code, robot drawings, visual layout, synthesized sounds and writing in this repository are newly created for this project. No earlier BattleBrotts source, assets or studio infrastructure is included. System fonts only. No third-party runtime assets or packages. See `ASSETS.md` for artwork and screenshot provenance and `LICENSE` for reuse terms.
