@@ -42,7 +42,7 @@ export function createRun(seed = 1) {
 export function startBattle(s) {
   if (!['ready', 'between', 'retry'].includes(s.phase)) return false;
   s.phase = 'battle'; s.time = 0; s.ticks = 0; s.bullets = []; s.effects = []; s.waypoint = null; s.targetId = null; s.keys = {x: 0, y: 0};
-  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0, autoTargetId: null});
+  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0, autoTargetId: null, edgeRecovery: false});
   s.enemies = ENCOUNTERS[s.encounter].enemies.map((kind, i, all) => entity(kind, `enemy-${i}`, 740 + (i % 2) * 65, 300 + (i - (all.length - 1) / 2) * 120, 1));
   s.lastCommand = 'Autopilot engaged'; s.events = [{type: 'start'}];
   return true;
@@ -122,6 +122,17 @@ export function step(s, dt = STEP) {
       if (d > bot.range * 0.86) { vx = dx; vy = dy; }
       else if (d < bot.range * 0.58) { vx = -dx; vy = -dy; }
       else { vx = -dy * 0.28; vy = dx * 0.28; }
+    }
+    // A short inward arc keeps the autonomous player out of boundary parking.
+    // Hysteresis prevents per-frame direction chatter. Explicit orders always win.
+    if (bot.team === 0 && !keyboard && !waypoint && target) {
+      const edge = Math.min(bot.x, WIDTH-bot.x, bot.y, HEIGHT-bot.y);
+      if (edge < bot.radius+45) bot.edgeRecovery = true;
+      if (edge > bot.radius+95) bot.edgeRecovery = false;
+      if (bot.edgeRecovery) {
+        const dx = WIDTH/2-bot.x, dy = HEIGHT/2-bot.y, length = Math.hypot(dx,dy);
+        vx = dx/length * 0.85; vy = dy/length * 0.85;
+      }
     }
     if (bot.kind === 'chief' && (bot.windup > 0 || bot.burstLeft > 0)) { vx = 0; vy = 0; }
     const magnitude = Math.max(1, Math.hypot(vx,vy));

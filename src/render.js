@@ -1,5 +1,6 @@
 import {WIDTH, HEIGHT, muzzleLength} from './sim.js';
 import {setWorldTransform,viewportSize} from './view.js';
+import {layoutLabels} from './labels.js';
 const ink='#213d39', cream='#faf0d7', teal='#4bada4', coral='#db7763';
 function rounded(ctx,x,y,w,h,r,fill,stroke=ink) {ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=3;ctx.stroke();}}
 export function render(canvas,s,alpha=1,portrait=false,reducedMotion=false) {
@@ -44,11 +45,20 @@ export function render(canvas,s,alpha=1,portrait=false,reducedMotion=false) {
     ctx.restore();
     ctx.save();ctx.rotate(b.angle);const length=muzzleLength(b);
     rounded(ctx,0,-6,length-3,12,4,b.team?coral:teal);rounded(ctx,length-9,-9,9,18,3,'#c9d3bf');ctx.restore();
-    if(portrait)ctx.rotate(-Math.PI/2);
-    const barWidth=Math.max(r*2+12,44/cssScale),fontSize=Math.max(12,12/cssScale);
-    rounded(ctx,-barWidth/2,r+16,barWidth,7,3,'#bdc8b7',null);rounded(ctx,-barWidth/2,r+16,barWidth*b.hp/b.maxHp,7,3,b.team?coral:teal,null);
-    ctx.fillStyle=ink;ctx.font=`600 ${fontSize}px system-ui`;ctx.textAlign='center';ctx.fillText(b.kind==='chief' && b.windup>0?'MOVE!':b.name,0,r+27+fontSize);ctx.restore();
+    ctx.restore();
   }
   for(const b of s.bullets){ctx.strokeStyle=b.team?coral:'#2c8b83';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b.x-b.vx*0.025,b.y-b.vy*0.025);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.fillStyle=cream;ctx.beginPath();ctx.arc(b.x,b.y,2,0,Math.PI*2);ctx.fill();}
+  ctx.save();ctx.setTransform(scale,0,0,scale,0,0);
+  for(const plate of layoutLabels(bots,portrait,cssScale,alpha)) {
+    const {x,y,width,height,font,text,point,bot}=plate;
+    ctx.strokeStyle='#61766d';ctx.lineWidth=1/cssScale;
+    ctx.beginPath();ctx.moveTo(point.x,point.y);ctx.lineTo(x+width/2,y+height/2);ctx.stroke();
+    rounded(ctx,x,y,width,height,5,'#faf0d7ef',null);
+    rounded(ctx,x+4,y+3,width-8,6,2,'#bdc8b7',null);
+    rounded(ctx,x+4,y+3,(width-8)*bot.hp/bot.maxHp,6,2,bot.team?coral:teal,null);
+    ctx.font=`600 ${font}px system-ui`;ctx.textAlign='center';ctx.fillStyle=ink;
+    ctx.fillText(text,x+width/2,y+height-4);
+  }
+  ctx.restore();
   if(!reducedMotion)for(const e of s.effects){ctx.strokeStyle=e.death?'#d4a244':'#fff5d5';ctx.lineWidth=4;ctx.beginPath();ctx.arc(e.x,e.y,(0.3-e.life)*80+5,0,Math.PI*2);ctx.stroke();}
 }
