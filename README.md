@@ -2,9 +2,18 @@
 
 An original small real-time robot auto-battler. Watch Pip fight, choose equipment, and give optional movement or target commands.
 
-## Development status
+## The complete compact campaign
 
-This is a development build, not the finished release. The approved finite scope is four regular encounters and one boss, one starter and two equipment directions. Both build directions have completed real browser campaigns. Independent critical review, final tuning, accessibility and release verification remain in progress. Optional original audio, numerical reward previews and a five-slide presentation are implemented with unit checks but await browser verification. The captioned demo is not yet recorded. Passing tests is not a claim of human playtesting or finished-game quality.
+Four regular encounters and one boss, one starter, two equipment directions and eight upgrades. Both directions have completed real browser campaigns. Original opt-in audio, numerical reward previews, mobile controls and two repair attempts are implemented and browser-checked. A five-slide presentation and actual captioned gameplay recording accompany the game.
+
+- [Play the game](https://brotatotes.github.io/battlebrotts-reborn/)
+- [Five-slide presentation](https://brotatotes.github.io/battlebrotts-reborn/presentation.html) and [PDF](https://brotatotes.github.io/battlebrotts-reborn/media/battlebrotts-presentation.pdf)
+- [Actual captioned gameplay demo](https://brotatotes.github.io/battlebrotts-reborn/demo.html)
+- [Runnable download and checksums](https://github.com/brotatotes/battlebrotts-reborn/releases/latest)
+
+The release archive includes both source and the built site. Its `SOURCE.json` identifies the exact source commit. Serve its `dist` folder with the command below to play without Node.js, or rebuild with Node.js. `npm run package` creates the same deterministic source-and-site ZIP for a clean source checkout.
+
+Testing and independent critical review are agent-only, not human playtesting. Browser coverage uses Chromium and emulated desktop/tablet/phone viewports, not physical-device or Safari certification. Passing tests cannot establish universal balance or enjoyment.
 
 ## Run locally
 
@@ -29,7 +38,7 @@ Open http://127.0.0.1:8000. The game itself is a standalone static site with no 
 
 ## Presentation
 
-Open `presentation.html` for the five-slide development presentation. Use the visible Previous/Next buttons or arrow keys. Home/End jump to the first/last slide. Browser printing includes all five slides. Screenshots are labeled development captures and final delivery links remain pending.
+Open `presentation.html` for the five-slide presentation. Use the visible Previous/Next buttons or arrow keys. Home/End jump to the first/last slide. Download `media/battlebrotts-presentation.pdf` for all five slides. `demo.html` plays the actual captioned gameplay recording and includes a transcript, MP4 and caption downloads. The recording uses labeled time cuts from one ordinary-controls run, not a promotional animation.
 
 ## Structure
 
