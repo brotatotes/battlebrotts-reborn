@@ -21,7 +21,7 @@ const templates = {
   riveter: {name: 'Rivet', maxHp: 105, speed: 65, range: 240, damage: 5, interval: 1.9, radius: 25, turnSpeed: 1.4, shotSpeed: 230},
   skitter: {name: 'Skitter', maxHp: 48, speed: 115, range: 160, damage: 4, interval: 1.8, radius: 20, turnSpeed: 2, shotSpeed: 250},
   surveyor: {name: 'Surveyor', maxHp: 85, speed: 55, range: 390, damage: 8, interval: 2.4, radius: 24, turnSpeed: 1.1, shotSpeed: 310},
-  chief: {name: 'The Chief', maxHp: 280, speed: 50, range: 425, damage: 14, interval: 1.4, radius: 39, turnSpeed: 1.2, shotSpeed: 250},
+  chief: {name: 'The Chief', maxHp: 280, speed: 50, range: 425, damage: 9, interval: 1.4, radius: 39, turnSpeed: 1.2, shotSpeed: 250},
 };
 export const ENCOUNTERS = [
   {name: 'First Shift', subtitle: 'An old riveter. A fresh start.', enemies: ['riveter']},
@@ -102,6 +102,9 @@ export function step(s, dt = STEP) {
   s.time += dt; s.ticks++; s.events = [];
   const bots = [s.player, ...s.enemies].filter(e => e.hp > 0);
   const proposals = new Map();
+  // Read last committed velocity before previous positions advance. Chief may
+  // predict during aiming, but cannot change its line after the warning starts.
+  const velocities = new Map(bots.map(b => [b.id, {x: (b.x-b.prevX)/dt, y: (b.y-b.prevY)/dt}]));
   for (const bot of bots) {
     bot.prevX = bot.x; bot.prevY = bot.y; bot.flash = Math.max(0, bot.flash-dt);
     bot.hp = Math.min(bot.maxHp, bot.hp + bot.regen * dt);
@@ -125,7 +128,11 @@ export function step(s, dt = STEP) {
     if (vx || vy) bot.bodyAngle += clamp(angleDelta(bot.bodyAngle, Math.atan2(vy,vx)), -3*dt, 3*dt);
     proposals.set(bot.id, {x: bot.x + vx/magnitude*bot.speed*dt, y: bot.y + vy/magnitude*bot.speed*dt});
     if (target) {
-      const aim = Math.atan2(target.y-bot.y, target.x-bot.x);
+      const velocity = velocities.get(target.id) || {x: 0, y: 0};
+      const lead = bot.kind === 'chief' ? 0.75 + distance(bot,target)/bot.shotSpeed : 0;
+      const aimX = clamp(target.x + velocity.x*lead, target.radius+12, WIDTH-target.radius-12);
+      const aimY = clamp(target.y + velocity.y*lead, target.radius+12, HEIGHT-target.radius-12);
+      const aim = Math.atan2(aimY-bot.y, aimX-bot.x);
       // Chief commits to the visible line for the entire warning and burst.
       // Regular weapons retain their independent tracking/cadence.
       if (bot.kind === 'chief' && (bot.windup > 0 || bot.burstLeft > 0)) {
