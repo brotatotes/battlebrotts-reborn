@@ -1,17 +1,19 @@
 import {WIDTH, HEIGHT, muzzleLength} from './sim.js';
+import {setWorldTransform,viewportSize} from './view.js';
 const ink='#213d39', cream='#faf0d7', teal='#4bada4', coral='#db7763';
 function rounded(ctx,x,y,w,h,r,fill,stroke=ink) {ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=3;ctx.stroke();}}
-export function render(canvas,s,alpha=1) {
-  const ctx=canvas.getContext('2d'), scale=canvas.width/WIDTH;
-  ctx.setTransform(scale,0,0,scale,0,0); ctx.clearRect(0,0,WIDTH,HEIGHT);
+export function render(canvas,s,alpha=1,portrait=false) {
+  const ctx=canvas.getContext('2d'),cssScale=(canvas.clientWidth||canvas.width)/viewportSize(portrait).width;
+  setWorldTransform(ctx,canvas.width,portrait);ctx.clearRect(0,0,WIDTH,HEIGHT);
   ctx.fillStyle='#e4e8d6';ctx.fillRect(0,0,WIDTH,HEIGHT);
   ctx.strokeStyle='#cdd6c3';ctx.lineWidth=1;
   for(let x=0;x<WIDTH;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,HEIGHT);ctx.stroke();}
   for(let y=0;y<HEIGHT;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(WIDTH,y);ctx.stroke();}
   rounded(ctx,12,12,WIDTH-24,HEIGHT-24,34,'#e9ecdccc');
   ctx.setLineDash([7,13]);ctx.strokeStyle='#bbcbbb';ctx.strokeRect(50,50,WIDTH-100,HEIGHT-100);ctx.setLineDash([]);
-  ctx.fillStyle='#b6c4af';ctx.font='bold 13px system-ui';ctx.textAlign='left';ctx.fillText('SUNROOM  /  TRAINING FLOOR',70,80);
-  ctx.textAlign='right';ctx.fillText('KEEP YOUR WHEELS TURNING',WIDTH-70,HEIGHT-65);
+  ctx.save();const view=viewportSize(portrait),scale=canvas.width/view.width;ctx.setTransform(scale,0,0,scale,0,0);
+  ctx.fillStyle='#b6c4af';ctx.font='bold 13px system-ui';ctx.textAlign='left';ctx.fillText('SUNROOM  /  TRAINING FLOOR',50,65);
+  ctx.textAlign='right';ctx.fillText('KEEP YOUR WHEELS TURNING',view.width-50,view.height-45);ctx.restore();
   if(s.waypoint){const w=s.waypoint;ctx.strokeStyle=teal;ctx.lineWidth=3;ctx.beginPath();ctx.arc(w.x,w.y,14,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(w.x-22,w.y);ctx.lineTo(w.x+22,w.y);ctx.moveTo(w.x,w.y-22);ctx.lineTo(w.x,w.y+22);ctx.stroke();ctx.setLineDash([5,8]);ctx.beginPath();ctx.moveTo(s.player.x,s.player.y);ctx.lineTo(w.x,w.y);ctx.stroke();ctx.setLineDash([]);}
   const bots=[s.player,...s.enemies];
   for(const b of bots){
@@ -36,8 +38,10 @@ export function render(canvas,s,alpha=1) {
     ctx.restore();
     ctx.save();ctx.rotate(b.angle);const length=muzzleLength(b);
     rounded(ctx,0,-6,length-3,12,4,b.team?coral:teal);rounded(ctx,length-9,-9,9,18,3,'#c9d3bf');ctx.restore();
-    rounded(ctx,-r-6,r+16,r*2+12,7,3,'#bdc8b7',null);rounded(ctx,-r-6,r+16,(r*2+12)*b.hp/b.maxHp,7,3,b.team?coral:teal,null);
-    ctx.fillStyle=ink;ctx.font='600 12px system-ui';ctx.textAlign='center';ctx.fillText(b.name,0,r+39);ctx.restore();
+    if(portrait)ctx.rotate(-Math.PI/2);
+    const barWidth=Math.max(r*2+12,44/cssScale),fontSize=Math.max(12,12/cssScale);
+    rounded(ctx,-barWidth/2,r+16,barWidth,7,3,'#bdc8b7',null);rounded(ctx,-barWidth/2,r+16,barWidth*b.hp/b.maxHp,7,3,b.team?coral:teal,null);
+    ctx.fillStyle=ink;ctx.font=`600 ${fontSize}px system-ui`;ctx.textAlign='center';ctx.fillText(b.name,0,r+27+fontSize);ctx.restore();
   }
   for(const b of s.bullets){ctx.strokeStyle=b.team?coral:'#2c8b83';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b.x-b.vx*0.025,b.y-b.vy*0.025);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.fillStyle=cream;ctx.beginPath();ctx.arc(b.x,b.y,2,0,Math.PI*2);ctx.fill();}
   for(const e of s.effects){ctx.strokeStyle=e.death?'#d4a244':'#fff5d5';ctx.lineWidth=4;ctx.beginPath();ctx.arc(e.x,e.y,(0.3-e.life)*80+5,0,Math.PI*2);ctx.stroke();}

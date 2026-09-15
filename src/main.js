@@ -1,11 +1,15 @@
 import {createRun,startBattle,step,command,chooseUpgrade,retryBattle,snapshot,UPGRADES,ENCOUNTERS,STEP,WIDTH,HEIGHT,distance} from './sim.js';
 import {render} from './render.js';
+import {viewportSize,pointerToWorld} from './view.js';
 const el=id=>document.getElementById(id),canvas=el('arena');
-let state=createRun(1),paused=false,last=performance.now(),accumulator=0,lastPhase='',runNumber=1;
+let state=createRun(1),paused=false,last=performance.now(),accumulator=0,lastPhase='',runNumber=1,portrait=false;
 const held=new Set();
 function resize(){
-  const width=Math.round(canvas.clientWidth*Math.min(2,devicePixelRatio||1)),height=Math.round(width*HEIGHT/WIDTH);
-  if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;render(canvas,state,1);}
+  const nextPortrait=matchMedia('(max-width:600px)').matches;
+  if(nextPortrait!==portrait){portrait=nextPortrait;held.clear();command(state,'keys',{x:0,y:0});}
+  const size=viewportSize(portrait);
+  const width=Math.round(canvas.clientWidth*Math.min(2,devicePixelRatio||1)),height=Math.round(width*size.height/size.width);
+  if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;render(canvas,state,1,portrait);}
 }
 new ResizeObserver(resize).observe(canvas);resize();
 function button(label,fn,primary=false){const b=document.createElement('button');b.textContent=label;b.className=primary?'primary':'';b.addEventListener('click',fn);return b;}
@@ -41,11 +45,11 @@ function togglePause(){if(state.phase==='battle'){paused=!paused;held.clear();co
 el('pause').addEventListener('click',togglePause);el('auto').addEventListener('click',()=>command(state,'auto'));
 canvas.addEventListener('pointerdown',event=>{
   if(paused||state.phase!=='battle')return;event.preventDefault();canvas.focus();
-  const r=canvas.getBoundingClientRect(),point={x:(event.clientX-r.left)*WIDTH/r.width,y:(event.clientY-r.top)*HEIGHT/r.height};
+  const r=canvas.getBoundingClientRect(),point=pointerToWorld({x:event.clientX,y:event.clientY},r,portrait);
   const enemy=state.enemies.filter(e=>e.hp>0).sort((a,b)=>distance(a,point)-distance(b,point)).find(e=>distance(e,point)<=e.radius+12);
   command(state,enemy?'target':'move',enemy?enemy.id:point);
 });
-function keys(){command(state,'keys',{x:Number(held.has('d')||held.has('arrowright'))-Number(held.has('a')||held.has('arrowleft')),y:Number(held.has('s')||held.has('arrowdown'))-Number(held.has('w')||held.has('arrowup'))});}
+function keys(){const x=Number(held.has('d')||held.has('arrowright'))-Number(held.has('a')||held.has('arrowleft')),y=Number(held.has('s')||held.has('arrowdown'))-Number(held.has('w')||held.has('arrowup'));command(state,'keys',portrait?{x:y,y:-x}:{x,y});}
 canvas.addEventListener('keydown',event=>{
   const k=event.key.toLowerCase();if(k==='escape'){event.preventDefault();togglePause();return;}
   if(paused)return;
@@ -61,7 +65,7 @@ let uiClock=0;
 function frame(now){
   const dt=Math.min(0.1,Math.max(0,(now-last)/1000));last=now;
   if(!paused){accumulator+=dt;let count=0;while(accumulator>=STEP&&count++<6){step(state);accumulator-=STEP;}}else accumulator=0;
-  render(canvas,state,paused?1:accumulator/STEP);uiClock+=dt;
+  render(canvas,state,paused?1:accumulator/STEP,portrait);uiClock+=dt;
   if(uiClock>0.08||lastPhase!==(paused?'paused':state.phase)){sync();uiClock=0;}
   requestAnimationFrame(frame);
 }
