@@ -2,7 +2,7 @@ import {WIDTH, HEIGHT, muzzleLength} from './sim.js';
 import {setWorldTransform,viewportSize} from './view.js';
 const ink='#213d39', cream='#faf0d7', teal='#4bada4', coral='#db7763';
 function rounded(ctx,x,y,w,h,r,fill,stroke=ink) {ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=3;ctx.stroke();}}
-export function render(canvas,s,alpha=1,portrait=false) {
+export function render(canvas,s,alpha=1,portrait=false,reducedMotion=false) {
   const ctx=canvas.getContext('2d'),cssScale=(canvas.clientWidth||canvas.width)/viewportSize(portrait).width;
   setWorldTransform(ctx,canvas.width,portrait);ctx.clearRect(0,0,WIDTH,HEIGHT);
   ctx.fillStyle='#e4e8d6';ctx.fillRect(0,0,WIDTH,HEIGHT);
@@ -33,7 +33,7 @@ export function render(canvas,s,alpha=1,portrait=false) {
     ctx.fillStyle='#294a3925';ctx.beginPath();ctx.ellipse(0,14,r+13,r*0.65,0,0,Math.PI*2);ctx.fill();
     ctx.save();ctx.rotate(b.bodyAngle+Math.PI/2);
     rounded(ctx,-r-7,-r+5,13,r*2-4,6,'#45605a');rounded(ctx,r-6,-r+5,13,r*2-4,6,'#45605a');
-    const body=b.flash>0?'#ffffff':b.team?'#e9b5a0':cream;
+    const body=b.flash>0&&!reducedMotion?'#ffffff':b.team?'#e9b5a0':cream;
     rounded(ctx,-r,-r,r*2,r*2, b.kind==='skitter'?10:18,body);
     rounded(ctx,-r+5,-r+8,r*2-10,r*0.85,7,b.team?'#713f37':'#245d59');
     ctx.fillStyle=b.team?'#ffe3a3':'#a8f1d7';
@@ -50,5 +50,5 @@ export function render(canvas,s,alpha=1,portrait=false) {
     ctx.fillStyle=ink;ctx.font=`600 ${fontSize}px system-ui`;ctx.textAlign='center';ctx.fillText(b.kind==='chief' && b.windup>0?'MOVE!':b.name,0,r+27+fontSize);ctx.restore();
   }
   for(const b of s.bullets){ctx.strokeStyle=b.team?coral:'#2c8b83';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(b.x-b.vx*0.025,b.y-b.vy*0.025);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.fillStyle=cream;ctx.beginPath();ctx.arc(b.x,b.y,2,0,Math.PI*2);ctx.fill();}
-  for(const e of s.effects){ctx.strokeStyle=e.death?'#d4a244':'#fff5d5';ctx.lineWidth=4;ctx.beginPath();ctx.arc(e.x,e.y,(0.3-e.life)*80+5,0,Math.PI*2);ctx.stroke();}
+  if(!reducedMotion)for(const e of s.effects){ctx.strokeStyle=e.death?'#d4a244':'#fff5d5';ctx.lineWidth=4;ctx.beginPath();ctx.arc(e.x,e.y,(0.3-e.life)*80+5,0,Math.PI*2);ctx.stroke();}
 }

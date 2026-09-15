@@ -4,12 +4,15 @@ import {viewportSize,pointerToWorld} from './view.js';
 const el=id=>document.getElementById(id),canvas=el('arena');
 let state=createRun(1),paused=false,last=performance.now(),accumulator=0,lastPhase='',runNumber=1,portrait=false;
 const held=new Set();
+const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
+let reducedMotion=motionPreference.matches;
+motionPreference.addEventListener('change',event=>{reducedMotion=event.matches;});
 function resize(){
   const nextPortrait=matchMedia('(max-width:600px)').matches;
   if(nextPortrait!==portrait){portrait=nextPortrait;held.clear();command(state,'keys',{x:0,y:0});}
   const size=viewportSize(portrait);
   const width=Math.round(canvas.clientWidth*Math.min(2,devicePixelRatio||1)),height=Math.round(width*size.height/size.width);
-  if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;render(canvas,state,1,portrait);}
+  if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;render(canvas,state,1,portrait,reducedMotion);}
 }
 new ResizeObserver(resize).observe(canvas);resize();
 function button(label,fn,primary=false){const b=document.createElement('button');b.textContent=label;b.className=primary?'primary':'';b.addEventListener('click',fn);return b;}
@@ -60,12 +63,12 @@ window.addEventListener('keyup',event=>{held.delete(event.key.toLowerCase());key
 canvas.addEventListener('blur',()=>{held.clear();keys();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.phase==='battle'){paused=true;held.clear();keys();}accumulator=0;last=performance.now();});
 // Read-only diagnostics expose copies, never a state-mutating test shortcut.
-Object.defineProperty(window,'battlebrotts',{value:Object.freeze({snapshot:()=>snapshot(state),isPaused:()=>paused}),writable:false});
+Object.defineProperty(window,'battlebrotts',{value:Object.freeze({snapshot:()=>snapshot(state),isPaused:()=>paused,reducedMotion:()=>reducedMotion}),writable:false});
 let uiClock=0;
 function frame(now){
   const dt=Math.min(0.1,Math.max(0,(now-last)/1000));last=now;
   if(!paused){accumulator+=dt;let count=0;while(accumulator>=STEP&&count++<6){step(state);accumulator-=STEP;}}else accumulator=0;
-  render(canvas,state,paused?1:accumulator/STEP,portrait);uiClock+=dt;
+  render(canvas,state,paused?1:accumulator/STEP,portrait,reducedMotion);uiClock+=dt;
   if(uiClock>0.08||lastPhase!==(paused?'paused':state.phase)){sync();uiClock=0;}
   requestAnimationFrame(frame);
 }
