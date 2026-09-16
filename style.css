@@ -7,3 +7,11 @@
 .battle-readout{position:relative;z-index:2;background:#faf6e9;border:1px solid #bdcbb8;border-radius:12px;padding:9px 90px 9px 12px;margin-bottom:12px;font-size:12px}.battle-readout>div{display:flex;align-items:center;justify-content:space-between;gap:4px 10px;flex-wrap:wrap}.battle-readout #pause{position:absolute;right:9px;top:9px;padding:9px 12px;min-width:72px;min-height:44px;font-size:12px}.battle-readout strong{white-space:nowrap}.battle-readout p{margin:5px 0 0;font-size:11px;line-height:1.4}.battle-readout #battle-feedback{font-weight:700;color:#245d59}.quick-controls{color:#52685a}@media(max-width:800px){.battle-active .battle-readout{position:sticky;top:0;box-shadow:0 3px 8px #213d3915}}
 
 #battle-rule:empty{display:none}.battle-readout #battle-rule{color:#775025;font-weight:700}
+/* Keep both touch actions together. The live readout already states command ownership. */
+@media(max-width:600px){
+  .command-bar{margin-top:12px}
+  .command-bar #command{display:none}
+  .command-actions{width:100%;justify-content:space-between;flex-wrap:nowrap}
+  .battle-active #battle-rule{display:block;min-height:31px}
+  .battle-active #battle-rule:empty{visibility:hidden}
+}

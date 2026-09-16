@@ -41,7 +41,12 @@ function sync(){
   const phase=paused?'paused':state.phase;
   document.body.classList.toggle('battle-active',phase==='battle');
   if(phase===lastPhase)return;lastPhase=phase;
-  const overlay=el('overlay');overlay.replaceChildren();if(phase==='battle')return;
+  const overlay=el('overlay');overlay.replaceChildren();
+  if(phase==='battle'){
+    // On phones frame the live information AND touch actions, not just the canvas.
+    if(portrait)requestAnimationFrame(()=>el('battle-hull').closest('.battle-readout').scrollIntoView({block:'start',behavior:'instant'}));
+    return;
+  }
   const panel=document.createElement('div');panel.className='panel';
   const h=document.createElement('h2'),p=document.createElement('p'),actions=document.createElement('div');actions.className='actions';
   if(phase==='ready'){h.textContent='Ready, little Brott?';p.textContent='Pip does the fighting. You choose when to help.';actions.append(button('Start the circuit',start,true));}
