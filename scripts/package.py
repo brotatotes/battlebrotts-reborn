@@ -29,7 +29,10 @@ for path in sorted((root / 'dist').rglob('*')):
 files['SOURCE.json'] = (json.dumps(identity, indent=2) + '\n').encode()
 files['SHA256SUMS.txt'] = ''.join(hashlib.sha256(data).hexdigest() + '  ' + name + '\n' for name, data in sorted(files.items())).encode()
 out.mkdir(parents=True, exist_ok=True)
-path = out / 'battlebrotts-reborn-v1.0.0.zip'
+version = json.loads((root / 'package.json').read_text())['version']
+if not all(part.isdigit() for part in version.split('.')) or len(version.split('.')) != 3:
+    raise SystemExit('Invalid release version')
+path = out / ('battlebrotts-reborn-v' + version + '.zip')
 with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
     for name, data in sorted(files.items()):
         info = zipfile.ZipInfo('battlebrotts-reborn/' + name, (2026, 9, 15, 0, 0, 0))

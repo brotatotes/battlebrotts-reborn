@@ -1,0 +1,21 @@
+{
+  "project": "battlebrotts-reborn",
+  "version": "1.0.0",
+  "commit": "8fadd89528e3de5100b0050c61f5030f10cacf5b",
+  "release": "https://github.com/brotatotes/battlebrotts-reborn/releases/tag/v1.0.0",
+  "scope": "Byte-identical baseline index, stylesheet and source modules. No original video duplicate. Two non-gameplay bridge pages explain where to find the original media.",
+  "sha256": {
+    "index.html": "294d5be6fd3baff12b527d8ac237b5ab3afead49670f5bf0bdfb8a12ef76aef7",
+    "style.css": "73c8c2b0d15cba25c5dfa74b601b314c4ca7f0249f9fc48a4f5bbccb8764af5a",
+    "src/audio.js": "da19790f01033cc5bf6e6ca7af912055bf9e4d174a49b2c2a46ad61a22232f3d",
+    "src/command-label.js": "5de1c78da31ffa132b74b99b6b1b35ca10c8c37589a3c38f51602748f7511c55",
+    "src/labels.js": "2a9479947bafbc4b5f8fc9c5bfb169eb069fcc6dd913053d43efac789b602c68",
+    "src/main.js": "d390b3f4f46dd03a3944b34effd7c3bf958d107f4a3277f61fe17d8c6c4ff7fb",
+    "src/presentation.js": "dfaebae4b2dce0d7eef53046b79b247e69f479e5150340a21afe1080752a1f4e",
+    "src/render.js": "1ada1356864f0eced1085de038dbc39f2462c12f989a2b3a83abb35601038642",
+    "src/sim.js": "7192c264a6aab9d9e2460609a1d8e0db8aa9ca4be89bdde6c18c6fd5c2fd48d8",
+    "src/slide-state.js": "1e40f26a9047892d53d011ca7f7a32a249e8fdf79e219cea064cf1dd7d61e195",
+    "src/upgrade-view.js": "1c2673532c354645b3b96f7ca4f082f5f6998f9bffef5bbc80fc598c9f3df0e9",
+    "src/view.js": "d877bbe3826454117a117108f4bcc53a323fff107262a2b87c48db25cd3d14ed"
+  }
+}

@@ -2,6 +2,14 @@
 
 An original small real-time robot auto-battler. Watch Pip fight, choose equipment, and give optional movement or target commands.
 
+## Linked Trouble, version 1.1
+
+The same five-fight circuit now gives its two weapons different jobs. Close Coil pulses hurt nearby rivals, including enemies off the direct shot line. Long Barrel bolts can pierce two aligned rivals, even when the second is outside a Coil pulse. Weapon descriptions show the direct and secondary damage rules before you choose.
+
+In the second encounter, a fragile Relay protects Rivet. Target Relay to break the visible link, or let Pip handle the pair automatically. A short link-break cue and restrained expressions show what happened without interrupting the fight. Return Spring remains the familiar damage upgrade. There is no extra encounter, campaign grind or new control to learn.
+
+The [classic v1 game](https://brotatotes.github.io/battlebrotts-reborn/classic/) is preserved byte-for-byte for its gameplay files. Its [original source, runnable download and media](https://github.com/brotatotes/battlebrotts-reborn/releases/tag/v1.0.0) remain available unchanged. Classic's two media links lead to small explanatory pages rather than duplicating the old video.
+
 ## The complete compact campaign
 
 Four regular encounters and one boss, one starter, two equipment directions and eight upgrades. Both directions have completed real browser campaigns. Original opt-in audio, numerical reward previews, mobile controls and two repair attempts are implemented and browser-checked. A five-slide presentation and actual captioned gameplay recording accompany the game.

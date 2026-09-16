@@ -11,5 +11,7 @@ await mkdir('dist',{recursive:true});
 for(const file of ['index.html','style.css','presentation.html','presentation.css','demo.html'])await copyFile(file,`dist/${file}`);
 await cp('src','dist/src',{recursive:true});
 await cp('media','dist/media',{recursive:true});
-await writeFile('dist/build-info.json',JSON.stringify({project:'battlebrotts-reborn',commit,source:`https://github.com/brotatotes/battlebrotts-reborn/tree/${commit}`},null,2)+'\n');
+await cp('classic','dist/classic',{recursive:true});
+const {version}=JSON.parse(await readFile('package.json','utf8'));
+await writeFile('dist/build-info.json',JSON.stringify({project:'battlebrotts-reborn',version,commit,source:`https://github.com/brotatotes/battlebrotts-reborn/tree/${commit}`},null,2)+'\n');
 console.log(`Built standalone site from ${commit}. No runtime dependencies.`);
