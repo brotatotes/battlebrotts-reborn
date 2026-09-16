@@ -4,29 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#213d39">
-  <title>BattleBrotts Reborn · Actual gameplay demo</title>
+  <title>BattleBrotts Reborn · Linked Trouble gameplay</title>
   <link rel="stylesheet" href="presentation.css">
   <style>main{max-width:1150px;margin:auto;padding:30px 5%}h1{font-size:clamp(32px,5vw,54px)}video{display:block;width:100%;background:#213d39;border-radius:14px;border:1px solid #c0cdbb}details{margin:25px 0}summary{cursor:pointer;min-height:44px;padding:12px 0;font-weight:bold}.links{display:flex;gap:25px;flex-wrap:wrap}.transcript li{margin-bottom:14px;line-height:1.6;color:#536c60}</style>
 </head>
 <body>
-  <header><a href="./">BATTLE<span>BROTTS</span> <small>REBORN</small></a><a href="./">Play the game ↗</a></header>
+  <header><a href="./">BATTLE<span>BROTTS</span> <small>LINKED TROUBLE · 1.1</small></a><a href="./">Play the game ↗</a></header>
   <main>
-    <p class="eyebrow">WATCH PIP IN ACTION</p>
-    <h1>One little circuit.<br>A real run.</h1>
-    <p class="lead">Actual browser gameplay, with time cuts clearly labeled. No sped-up combat or simulated promotional footage.</p>
-    <video controls playsinline preload="metadata" poster="media/presentation-battle.png" aria-label="Captioned BattleBrotts gameplay showing a build choice, movement and target commands, and the final outcome">
+    <p class="eyebrow">THE EXPANSION IN ACTION</p>
+    <h1>One choice.<br>A different fight.</h1>
+    <p class="lead">A new recording of real browser gameplay. Compare the original weapons, try a pulse or a piercing bolt, and break Relay's link.</p>
+    <video controls playsinline preload="metadata" poster="media/linked-pair.png" aria-label="Captioned Linked Trouble demo showing original gameplay, two new weapon behaviors and a Relay target choice">
       <source src="media/battlebrotts-demo.mp4" type="video/mp4">
       Your browser cannot play this video. <a href="media/battlebrotts-demo.mp4">Download the captioned demo</a> or read the transcript below.
     </video>
-    <p class="note">Captions are part of the picture. The recording is intentionally silent. The game has optional, muted-by-default mechanical sounds. This is an agent-driven playthrough, not a human playtest.</p>
-    <div class="links"><a href="./">Play BattleBrotts</a><a href="presentation.html">Five-slide presentation</a><a href="media/battlebrotts-demo.mp4" download>Download video</a><a href="media/battlebrotts-demo.vtt" download>Download captions</a><a href="https://github.com/brotatotes/battlebrotts-reborn">Source ↗</a></div>
-    <details open><summary>Demo transcript</summary><ol class="transcript">
-      <li>Meet Pip. Start the circuit with the ordinary game button. Pip moves, aims and fires on its own.</li>
-      <li>Cut forward to the first victory. Choose Long Barrel. The visible reward preview explains its longer reach, and the equipped weapon changes in the next encounter.</li>
-      <li>Click open ground to move. Then click a rival to focus fire. The destination remains active and Pip keeps firing while it travels. Return to auto gives control back.</li>
-      <li>Cut forward in the same run to the Chief. Its aim corridor warns of the coming burst. The remaining encounters and gear selections were played normally, not skipped by changing game state.</li>
-      <li>Cut forward to the finish. Pip completes all five encounters. Start a new run to try a different build.</li>
+    <p id="readable-caption" aria-live="off" style="font-weight:bold;color:#213d39;min-height:3.2em">Captions are also in the video and transcript below.</p>
+    <p class="note">Separate ordinary-controls runs and time cuts are labeled. Combat is not sped up and game state is not injected. Captions are part of the picture. The recording is intentionally silent. The game has optional, muted-by-default sounds.</p>
+    <div class="links"><a href="./">Play Linked Trouble</a><a href="classic/">Play Classic v1</a><a href="presentation.html">Five-slide presentation</a><a href="media/battlebrotts-demo.mp4" download>Download video</a><a href="media/battlebrotts-demo.vtt" download>Download captions</a><a href="https://github.com/brotatotes/battlebrotts-reborn">Source ↗</a></div>
+    <details open><summary>What the demo shows</summary><ol class="transcript">
+      <li>Classic v1. The original weapons differ in damage and reach. Their bolts stop at the first rival.</li>
+      <li>Close Coil, a new run. Choose the Coil through the ordinary reward screen. Its impacts pulse into nearby rivals.</li>
+      <li>The Pair, Coil run continued. An ordinary target command focuses Relay. Its defeat removes Rivet's visible protection link.</li>
+      <li>Small Trouble, later in the Coil run. Circular impact pulses catch nearby rivals in the cluster, not just the first target.</li>
+      <li>The Pair, a separate Long Barrel run. A bolt continues into a second aligned rival for a weaker hit. This excerpt uses pure autopilot.</li>
+      <li>The Chief, back to the Coil run's ending. Finish the five-encounter circuit, win, and return to a fresh run.</li>
     </ol></details>
+    <p>This is an agent-driven recording, not human playtesting or proof of perfect balance. The <a href="https://github.com/brotatotes/battlebrotts-reborn/releases/tag/v1.0.0">original release and its earlier demo</a> remain available unchanged.</p>
   </main>
+  <script type="module" src="src/demo-captions.js"></script>
 </body>
 </html>

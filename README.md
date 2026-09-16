@@ -46,7 +46,7 @@ Open http://127.0.0.1:8000. The game itself is a standalone static site with no 
 
 ## Presentation
 
-Open `presentation.html` for the five-slide presentation. Use the visible Previous/Next buttons or arrow keys. Home/End jump to the first/last slide. Download `media/battlebrotts-presentation.pdf` for all five slides. `demo.html` plays the actual captioned gameplay recording and includes a transcript, MP4 and caption downloads. The recording uses labeled time cuts from one ordinary-controls run, not a promotional animation.
+Open `presentation.html` for the five-slide presentation. Use the visible Previous/Next buttons or arrow keys. Home/End jump to the first/last slide. Download `media/battlebrotts-presentation.pdf` for all five slides. `demo.html` plays the actual captioned gameplay recording and includes a transcript, MP4 and caption downloads. The new 64-second recording uses labeled time cuts from three ordinary-controls runs, one Classic and two expansion builds. It shows the Coil choice, Relay's link breaking, cluster pulses, Barrel piercing, and a real win followed by a new run. It is not a promotional animation.
 
 ## Structure
 
