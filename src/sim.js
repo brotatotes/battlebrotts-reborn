@@ -21,29 +21,32 @@ const templates = {
   riveter: {name: 'Rivet', maxHp: 105, speed: 65, range: 240, damage: 5, interval: 1.9, radius: 25, turnSpeed: 1.4, shotSpeed: 230},
   skitter: {name: 'Skitter', maxHp: 48, speed: 115, range: 160, damage: 4, interval: 1.8, radius: 20, turnSpeed: 2, shotSpeed: 250},
   surveyor: {name: 'Surveyor', maxHp: 85, speed: 55, range: 390, damage: 8, interval: 2.4, radius: 24, turnSpeed: 1.1, shotSpeed: 310},
+  relay: {name: 'Relay', maxHp: 48, speed: 60, range: 280, damage: 3, interval: 2.6, radius: 21, turnSpeed: 1.5, shotSpeed: 240},
   chief: {name: 'The Chief', maxHp: 280, speed: 50, range: 425, damage: 9, interval: 1.4, radius: 39, turnSpeed: 1.2, shotSpeed: 250},
 };
 export const ENCOUNTERS = [
   {name: 'First Shift', subtitle: 'An old riveter. A fresh start.', enemies: ['riveter']},
-  {name: 'The Pair', subtitle: 'Pick your target. Keep your wheels turning.', enemies: ['riveter', 'skitter']},
+  {name: 'Linked Trouble', subtitle: 'Relay protects Rivet. Target Relay to break the link.', enemies: ['riveter', 'relay']},
   {name: 'Small Trouble', subtitle: 'Small machines. Big opinions.', enemies: ['skitter', 'skitter', 'skitter']},
   {name: 'Long Reach', subtitle: 'Watch the barrel, not just the bot.', enemies: ['surveyor', 'riveter']},
   {name: 'The Chief', subtitle: 'The Chief locks a line, then fires three bolts. Move sideways to dodge.', enemies: ['chief']},
 ];
 function entity(kind, id, x, y, team) {
   const base = templates[kind];
-  return {...base, kind, id, team, x, y, prevX: x, prevY: y, hp: base.maxHp, angle: team ? Math.PI : 0, bodyAngle: team ? Math.PI : 0, cooldown: 1, flash: 0, shots: 0, hits: 0, gear: 'rivet', regen: 0, windup: 0, burstLeft: 0, burstTimer: 0};
+  return {...base, kind, id, team, x, y, prevX: x, prevY: y, hp: base.maxHp, angle: team ? Math.PI : 0, bodyAngle: team ? Math.PI : 0, cooldown: 1, flash: 0, shots: 0, hits: 0, gear: 'rivet', regen: 0, windup: 0, burstLeft: 0, burstTimer: 0, expression: 'neutral', expressionLife: 0};
 }
 export const muzzleLength = bot => bot.radius + (bot.gear === 'barrel' ? 25 : bot.gear === 'coil' ? 8 : 12);
 export function createRun(seed = 1) {
-  const s = {seed, random: rng(seed), phase: 'ready', encounter: 0, retries: 2, upgrades: [], time: 0, ticks: 0, player: entity('pip', 'pip', 200, 300, 0), enemies: [], bullets: [], effects: [], events: [], waypoint: null, targetId: null, keys: {x: 0, y: 0}, choiceIds: [], nextBullet: 0, lastCommand: 'Autopilot ready'};
+  const s = {seed, random: rng(seed), phase: 'ready', encounter: 0, retries: 2, upgrades: [], time: 0, ticks: 0, player: entity('pip', 'pip', 200, 300, 0), enemies: [], bullets: [], effects: [], events: [], waypoint: null, targetId: null, keys: {x: 0, y: 0}, choiceIds: [], nextBullet: 0, notice: '', noticeLife: 0, lastCommand: 'Autopilot ready'};
   return s;
 }
 export function startBattle(s) {
   if (!['ready', 'between', 'retry'].includes(s.phase)) return false;
-  s.phase = 'battle'; s.time = 0; s.ticks = 0; s.bullets = []; s.effects = []; s.waypoint = null; s.targetId = null; s.keys = {x: 0, y: 0};
-  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0, autoTargetId: null, edgeRecovery: false});
+  s.phase = 'battle'; s.notice = ''; s.noticeLife = 0; s.time = 0; s.ticks = 0; s.bullets = []; s.effects = []; s.waypoint = null; s.targetId = null; s.keys = {x: 0, y: 0};
+  Object.assign(s.player, {x: 185, y: 300, prevX: 185, prevY: 300, hp: s.player.maxHp, angle: 0, bodyAngle: 0, cooldown: 1.5, shots: 0, hits: 0, flash: 0, autoTargetId: null, edgeRecovery: false, expression: 'neutral', expressionLife: 0});
   s.enemies = ENCOUNTERS[s.encounter].enemies.map((kind, i, all) => entity(kind, `enemy-${i}`, 740 + (i % 2) * 65, 300 + (i - (all.length - 1) / 2) * 120, 1));
+  const relay=s.enemies.find(e=>e.kind==='relay');
+  if(relay)relay.linkedId=s.enemies.find(e=>e.kind==='riveter')?.id??null;
   s.lastCommand = 'Autopilot engaged'; s.events = [{type: 'start'}];
   return true;
 }
@@ -90,16 +93,30 @@ function fire(s, bot) {
   s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*muzzleLength(bot), y: bot.y+uy*muzzleLength(bot), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5, gear: bot.gear, hitIds: []});
   bot.shots++; s.events.push({type: 'shot', team: bot.team});
 }
+// Fixed buddy link, queried at impact time so a source death takes effect immediately.
+export function shieldSource(s, target) {
+  if(target.hp<=0)return null;
+  return s.enemies.find(e=>e.kind==='relay' && e.hp>0 && e.team===target.team && e.id!==target.id && e.linkedId===target.id)??null;
+}
 // Every damage recipient has one owner. Secondary damage never emits another attack.
 function damageTarget(s, bullet, target, amount, secondary = false) {
   if (target.hp <= 0) return;
+  const shielded=Boolean(shieldSource(s,target));
+  if(shielded)amount*=0.65;
   const dealt = Math.min(target.hp, amount);
   target.hp = Math.max(0, target.hp - amount); target.flash = 0.12;
+  if(target.team===0){target.expression='hurt';target.expressionLife=0.5;}
   const owner = [s.player, ...s.enemies].find(e => e.id === bullet.owner);
   if (owner && !secondary) owner.hits++;
   s.effects.push({x:target.x,y:target.y,life:0.3,death:target.hp===0});
-  s.events.push({type:'hit',team:target.team,targetId:target.id,owner:bullet.owner,damage:dealt,secondary,attackId:bullet.id});
-  if (target.hp === 0) s.events.push({type:'kill',team:bullet.team,targetId:target.id,owner:bullet.owner,attackId:bullet.id});
+  s.events.push({type:'hit',team:target.team,targetId:target.id,owner:bullet.owner,damage:dealt,shielded,secondary,attackId:bullet.id});
+  if (target.hp === 0) {
+    s.events.push({type:'kill',team:bullet.team,targetId:target.id,owner:bullet.owner,attackId:bullet.id});
+    if(owner?.team===0 && owner.hp>0){owner.expression='pleased';owner.expressionLife=0.9;}
+    if(target.kind==='relay' && s.enemies.some(e=>e.id===target.linkedId && e.hp>0)){
+      s.events.push({type:'linkBreak',targetId:target.linkedId});s.notice='LINK BROKEN';s.noticeLife=2.4;
+    }
+  }
 }
 function getTarget(s, bot) {
   const foes = bot.team === 0 ? s.enemies.filter(e => e.hp > 0) : (s.player.hp > 0 ? [s.player] : []);
@@ -111,6 +128,7 @@ function getTarget(s, bot) {
 export function step(s, dt = STEP) {
   if (s.phase !== 'battle') return;
   s.time += dt; s.ticks++; s.events = [];
+  s.noticeLife=Math.max(0,s.noticeLife-dt);if(!s.noticeLife)s.notice='';
   const bots = [s.player, ...s.enemies].filter(e => e.hp > 0);
   const proposals = new Map();
   // Read last committed velocity before previous positions advance. Chief may
@@ -118,6 +136,7 @@ export function step(s, dt = STEP) {
   const velocities = new Map(bots.map(b => [b.id, {x: (b.x-b.prevX)/dt, y: (b.y-b.prevY)/dt}]));
   for (const bot of bots) {
     bot.prevX = bot.x; bot.prevY = bot.y; bot.flash = Math.max(0, bot.flash-dt);
+    bot.expressionLife=Math.max(0,(bot.expressionLife||0)-dt);if(!bot.expressionLife)bot.expression='neutral';
     bot.hp = Math.min(bot.maxHp, bot.hp + bot.regen * dt);
     const target = getTarget(s, bot);
     let vx = 0, vy = 0;

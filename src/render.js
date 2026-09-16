@@ -1,4 +1,4 @@
-import {WIDTH, HEIGHT, muzzleLength} from './sim.js';
+import {WIDTH, HEIGHT, muzzleLength, shieldSource} from './sim.js';
 import {setWorldTransform,viewportSize} from './view.js';
 import {layoutLabels} from './labels.js';
 const ink='#213d39', cream='#faf0d7', teal='#4bada4', coral='#db7763';
@@ -17,6 +17,14 @@ export function render(canvas,s,alpha=1,portrait=false,reducedMotion=false) {
   ctx.textAlign='right';ctx.fillText('KEEP YOUR WHEELS TURNING',view.width-50,view.height-45);ctx.restore();
   if(s.waypoint){const w=s.waypoint;ctx.strokeStyle=teal;ctx.lineWidth=3;ctx.beginPath();ctx.arc(w.x,w.y,14,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(w.x-22,w.y);ctx.lineTo(w.x+22,w.y);ctx.moveTo(w.x,w.y-22);ctx.lineTo(w.x,w.y+22);ctx.stroke();ctx.setLineDash([5,8]);ctx.beginPath();ctx.moveTo(s.player.x,s.player.y);ctx.lineTo(w.x,w.y);ctx.stroke();ctx.setLineDash([]);}
   const bots=[s.player,...s.enemies];
+  // Protection reads the same live relationship as damage. Never mutate gameplay.
+  for(const buddy of s.enemies){
+    const relay=shieldSource(s,buddy);if(!relay)continue;
+    const x=buddy.prevX+(buddy.x-buddy.prevX)*alpha,y=buddy.prevY+(buddy.y-buddy.prevY)*alpha;
+    const rx=relay.prevX+(relay.x-relay.prevX)*alpha,ry=relay.prevY+(relay.y-relay.prevY)*alpha;
+    ctx.strokeStyle='#85602d';ctx.lineWidth=3;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(x,y);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(x,y,buddy.radius+10,0,Math.PI*2);ctx.stroke();
+  }
   for(const b of bots){
     if(b.hp<=0) continue;
     const x=b.prevX+(b.x-b.prevX)*alpha,y=b.prevY+(b.y-b.prevY)*alpha,r=b.radius;
@@ -38,9 +46,18 @@ export function render(canvas,s,alpha=1,portrait=false,reducedMotion=false) {
     rounded(ctx,-r,-r,r*2,r*2, b.kind==='skitter'?10:18,body);
     rounded(ctx,-r+5,-r+8,r*2-10,r*0.85,7,b.team?'#713f37':'#245d59');
     ctx.fillStyle=b.team?'#ffe3a3':'#a8f1d7';
-    ctx.fillRect(-r*0.42,-r*0.38,5,7);ctx.fillRect(r*0.27,-r*0.38,5,7);
+    if(b.team===0 && (b.expression==='pleased'||s.phase==='win')){
+      ctx.strokeStyle='#a8f1d7';ctx.lineWidth=2.5;ctx.beginPath();
+      for(const ex of [-r*0.32,r*0.32]){ctx.moveTo(ex-3,-r*0.13);ctx.lineTo(ex,-r*0.28);ctx.lineTo(ex+3,-r*0.13);}ctx.stroke();
+    } else if(b.team===0 && b.expression==='hurt'){
+      ctx.fillRect(-r*0.42,-r*0.28,6,3);ctx.fillRect(r*0.22,-r*0.28,6,3);
+    } else {ctx.fillRect(-r*0.42,-r*0.38,5,7);ctx.fillRect(r*0.27,-r*0.38,5,7);}
     ctx.strokeStyle=ink;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,-r);ctx.lineTo(5,-r-12);ctx.stroke();
     ctx.fillStyle=b.team?coral:teal;ctx.beginPath();ctx.arc(5,-r-13,4,0,Math.PI*2);ctx.fill();
+    if(b.kind==='relay'){
+      ctx.strokeStyle='#85602d';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(5,-r-12);ctx.lineTo(-9,-r-21);ctx.moveTo(5,-r-12);ctx.lineTo(15,-r-21);ctx.stroke();
+      for(const ex of [-9,15]){ctx.fillStyle='#85602d';ctx.beginPath();ctx.arc(ex,-r-22,4,0,Math.PI*2);ctx.fill();}
+    }
     if(b.kind==='chief'){rounded(ctx,-15,-r-8,30,8,2,'#d5b348');}
     ctx.restore();
     ctx.save();ctx.rotate(b.angle);const length=muzzleLength(b);

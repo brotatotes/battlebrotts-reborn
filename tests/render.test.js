@@ -31,3 +31,21 @@ test('reduced motion keeps the essential full pulse boundary without mutating st
   assert.deepEqual(snapshot(state),before);
   assert.ok(reduced.calls.some(c=>c[0]==='arc'&&c[1]===400&&c[2]===300&&c[3]===75));
 });
+
+test('Relay tether and protected outline use the live link in normal and reduced motion',()=>{
+  const s=createRun();s.encounter=1;startBattle(s);
+  for(const reduced of [false,true]){
+    const before=snapshot(s),live=instrument();render(live.canvas,s,1,false,reduced);assert.deepEqual(snapshot(s),before);
+    assert.ok(live.calls.some(c=>c[0]==='arc'&&c[1]===s.enemies[0].x&&c[2]===s.enemies[0].y&&c[3]===s.enemies[0].radius+10));
+    s.enemies[1].hp=0;const dead=instrument();render(dead.canvas,s,1,false,reduced);
+    assert.ok(!dead.calls.some(c=>c[0]==='arc'&&c[1]===s.enemies[0].x&&c[2]===s.enemies[0].y&&c[3]===s.enemies[0].radius+10));
+    s.enemies[1].hp=s.enemies[1].maxHp;
+  }
+});
+test('Pip expressions alter only face drawing and preserve simulation in portrait reduced motion',()=>{
+  const s=createRun();startBattle(s);
+  for(const expression of ['neutral','hurt','pleased']){
+    s.player.expression=expression;s.player.expressionLife=0.5;const before=snapshot(s),screen=instrument();
+    render(screen.canvas,s,1,true,true);assert.deepEqual(snapshot(s),before);assert.ok(screen.calls.length>0);
+  }
+});

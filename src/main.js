@@ -1,4 +1,4 @@
-import {createRun,startBattle,step,command,chooseUpgrade,retryBattle,snapshot,UPGRADES,ENCOUNTERS,STEP,WIDTH,HEIGHT,distance} from './sim.js';
+import {createRun,startBattle,step,command,chooseUpgrade,retryBattle,snapshot,UPGRADES,ENCOUNTERS,STEP,WIDTH,HEIGHT,distance,shieldSource} from './sim.js';
 import {render} from './render.js';
 import {viewportSize,pointerToWorld} from './view.js';
 import {upgradePreview} from './upgrade-view.js';
@@ -33,7 +33,9 @@ function sync(){
   const feedback=commandLabel(state,paused);
   el('command').textContent=feedback;
   el('battle-hull').textContent=`Pip · Hull ${Math.ceil(state.player.hp)} / ${state.player.maxHp}`;
-  el('battle-gear').textContent=state.player.gear==='coil'?'Close Coil':state.player.gear==='barrel'?'Long Barrel':'Standard riveter';
+  el('battle-gear').textContent=state.player.gear==='coil'?'Coil · pulses hit nearby rivals':state.player.gear==='barrel'?'Barrel · pierces two aligned rivals':'Standard riveter';
+  const linked=state.enemies.some(e=>shieldSource(state,e));
+  el('battle-rule').textContent=state.notice || (linked?'Rivet takes 35% less damage. Target Relay to break the link.':'');
   el('battle-feedback').textContent=feedback;
   el('pause').disabled=state.phase!=='battle';el('pause').textContent=paused?'Resume':'Pause';el('auto').disabled=state.phase!=='battle'||paused;
   const phase=paused?'paused':state.phase;
@@ -93,7 +95,8 @@ let uiClock=0;
 function frame(now){
   const dt=Math.min(0.1,Math.max(0,(now-last)/1000));last=now;
   if(!paused){accumulator+=dt;let count=0;while(accumulator>=STEP&&count++<6){
-    const before=state.phase;step(state);
+    const before=state.phase,previousNotice=state.notice;step(state);
+    if(state.notice!==previousNotice)uiClock=1;
     if(before==='battle'){
       if(state.phase!==before)audio.play(state.phase);else audio.events(state.events);
     }
