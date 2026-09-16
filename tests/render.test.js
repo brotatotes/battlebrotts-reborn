@@ -23,3 +23,11 @@ test('reduced motion removes hit flashes and rings but retains actual bots and p
   assert.equal(normal.calls.filter(c=>c[0]==='arc').length,reduced.calls.filter(c=>c[0]==='arc').length+1);
   assert.equal(normal.calls.filter(c=>c[0]==='lineTo').length,reduced.calls.filter(c=>c[0]==='lineTo').length);
 });
+
+test('reduced motion keeps the essential full pulse boundary without mutating state',()=>{
+  const state=createRun();startBattle(state);state.player.gear='coil';
+  state.effects=[{kind:'pulse',x:400,y:300,life:0.2,radius:75}];
+  const before=snapshot(state),reduced=instrument();render(reduced.canvas,state,1,false,true);
+  assert.deepEqual(snapshot(state),before);
+  assert.ok(reduced.calls.some(c=>c[0]==='arc'&&c[1]===400&&c[2]===300&&c[3]===75));
+});

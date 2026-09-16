@@ -7,8 +7,8 @@ export function rng(seed) {
   return () => { value = (Math.imul(value, 1664525) + 1013904223) >>> 0; return value / 4294967296; };
 }
 export const UPGRADES = [
-  {id: 'coil', name: 'Close Coil', detail: 'A heavy rivet. +55% damage, range becomes 220.', apply: p => { p.damage *= 1.55; p.range = 220; p.gear = 'coil'; }},
-  {id: 'barrel', name: 'Long Barrel', detail: 'A precise bolt. +30% damage, range becomes 410.', apply: p => { p.damage *= 1.3; p.range = 410; p.gear = 'barrel'; }},
+  {id: 'coil', name: 'Close Coil', detail: 'Impact pulses hit nearby enemies for 40% damage. +55% direct damage, range 220.', apply: p => { p.damage *= 1.55; p.range = 220; p.gear = 'coil'; }},
+  {id: 'barrel', name: 'Long Barrel', detail: 'Bolts pierce two aligned enemies. Second hit deals 65% damage. +30% direct damage, range 410.', apply: p => { p.damage *= 1.3; p.range = 410; p.gear = 'barrel'; }},
   {id: 'spring', name: 'Twin Spring', detail: 'Fire 20% more often.', apply: p => { p.interval /= 1.2; }},
   {id: 'shell', name: 'Reinforced Shell', detail: '+35 maximum hull.', apply: p => { p.maxHp += 35; p.hp += 35; }},
   {id: 'bearings', name: 'Rolling Bearings', detail: '+20% movement speed.', apply: p => { p.speed *= 1.2; }},
@@ -87,8 +87,19 @@ export function sweepHit(ax, ay, bx, by, cx, cy, dx, dy, radius) {
 }
 function fire(s, bot) {
   const ux = Math.cos(bot.angle), uy = Math.sin(bot.angle);
-  s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*muzzleLength(bot), y: bot.y+uy*muzzleLength(bot), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5});
+  s.bullets.push({id: s.nextBullet++, team: bot.team, owner: bot.id, x: bot.x+ux*muzzleLength(bot), y: bot.y+uy*muzzleLength(bot), vx: ux*bot.shotSpeed, vy: uy*bot.shotSpeed, damage: bot.damage, life: 2.5, gear: bot.gear, hitIds: []});
   bot.shots++; s.events.push({type: 'shot', team: bot.team});
+}
+// Every damage recipient has one owner. Secondary damage never emits another attack.
+function damageTarget(s, bullet, target, amount, secondary = false) {
+  if (target.hp <= 0) return;
+  const dealt = Math.min(target.hp, amount);
+  target.hp = Math.max(0, target.hp - amount); target.flash = 0.12;
+  const owner = [s.player, ...s.enemies].find(e => e.id === bullet.owner);
+  if (owner && !secondary) owner.hits++;
+  s.effects.push({x:target.x,y:target.y,life:0.3,death:target.hp===0});
+  s.events.push({type:'hit',team:target.team,targetId:target.id,owner:bullet.owner,damage:dealt,secondary,attackId:bullet.id});
+  if (target.hp === 0) s.events.push({type:'kill',team:bullet.team,targetId:target.id,owner:bullet.owner,attackId:bullet.id});
 }
 function getTarget(s, bot) {
   const foes = bot.team === 0 ? s.enemies.filter(e => e.hp > 0) : (s.player.hp > 0 ? [s.player] : []);
@@ -196,18 +207,37 @@ export function step(s, dt = STEP) {
   }
   const surviving=[];
   for (const bullet of s.bullets) {
-    const nx=bullet.x+bullet.vx*dt, ny=bullet.y+bullet.vy*dt;
-    let hit=null, earliest=Infinity;
+    if (bullet.life <= 0) continue;
+    const travel = Math.min(dt, bullet.life);
+    const nx=bullet.x+bullet.vx*travel, ny=bullet.y+bullet.vy*travel;
+    const piercing=bullet.gear==='barrel', cap=piercing?2:1;
+    bullet.hitIds ??= [];
+    const contacts=[];
     for (const target of bots) {
-      if (target.team===bullet.team || target.hp<=0) continue;
-      const t=sweepHit(bullet.x,bullet.y,nx,ny,target.prevX,target.prevY,target.x,target.y,target.radius+3);
-      if (t!==null && t<earliest) { hit=target; earliest=t; }
+      if (target.team===bullet.team || target.hp<=0 || bullet.hitIds.includes(target.id)) continue;
+      const fraction=travel/dt;
+      const tx=target.prevX+(target.x-target.prevX)*fraction, ty=target.prevY+(target.y-target.prevY)*fraction;
+      const t=sweepHit(bullet.x,bullet.y,nx,ny,target.prevX,target.prevY,tx,ty,target.radius+3);
+      if (t!==null) contacts.push({target,t});
     }
-    if (hit) {
-      hit.hp=Math.max(0,hit.hp-bullet.damage); hit.flash=0.12;
-      const owner=bots.find(e=>e.id===bullet.owner); if(owner) owner.hits++;
-      s.effects.push({x:hit.x,y:hit.y,life:0.3,death:hit.hp===0}); s.events.push({type:'hit',team:hit.team});
-    } else { bullet.x=nx; bullet.y=ny; bullet.life-=dt; if(bullet.life>0 && nx>-20 && nx<WIDTH+20 && ny>-20 && ny<HEIGHT+20) surviving.push(bullet); }
+    contacts.sort((a,b)=>a.t-b.t || a.target.id.localeCompare(b.target.id));
+    for (const {target} of contacts) {
+      if (bullet.hitIds.length>=cap) break;
+      if (target.hp<=0) continue;
+      const amount=bullet.damage*(piercing && bullet.hitIds.length ? 0.65 : 1);
+      bullet.hitIds.push(target.id);
+      damageTarget(s,bullet,target,amount);
+      if (bullet.gear==='coil') {
+        s.effects.push({kind:'pulse',x:target.x,y:target.y,radius:75,life:0.3});
+        for (const neighbour of bots) {
+          if (neighbour.id!==target.id && neighbour.team!==bullet.team && neighbour.hp>0 && distance(target,neighbour)<=75) {
+            damageTarget(s,bullet,neighbour,bullet.damage*0.4,true);
+          }
+        }
+      }
+    }
+    bullet.x=nx; bullet.y=ny; bullet.life-=dt;
+    if(bullet.hitIds.length<cap && bullet.life>0 && nx>-20 && nx<WIDTH+20 && ny>-20 && ny<HEIGHT+20) surviving.push(bullet);
   }
   s.bullets=surviving;
   s.effects=s.effects.filter(e=>(e.life-=dt)>0).slice(-60);
